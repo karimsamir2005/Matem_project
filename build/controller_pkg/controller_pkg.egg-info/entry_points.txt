@@ -1,4 +1,0 @@
-[console_scripts]
-arm_input_node = controller_pkg.arm_input_node:main
-cyl_ik_node = controller_pkg.cyl_ik_node:main
-serial_bridge_node = controller_pkg.serial_bridge_node:main

@@ -1,9 +1,0 @@
-/home/kareem/Desktop/Matem_repo/build/mat_bringup/CMakeFiles/uninstall.dir
-/home/kareem/Desktop/Matem_repo/build/mat_bringup/CMakeFiles/mat_bringup_uninstall.dir
-/home/kareem/Desktop/Matem_repo/build/mat_bringup/CMakeFiles/test.dir
-/home/kareem/Desktop/Matem_repo/build/mat_bringup/CMakeFiles/edit_cache.dir
-/home/kareem/Desktop/Matem_repo/build/mat_bringup/CMakeFiles/rebuild_cache.dir
-/home/kareem/Desktop/Matem_repo/build/mat_bringup/CMakeFiles/list_install_components.dir
-/home/kareem/Desktop/Matem_repo/build/mat_bringup/CMakeFiles/install.dir
-/home/kareem/Desktop/Matem_repo/build/mat_bringup/CMakeFiles/install/local.dir
-/home/kareem/Desktop/Matem_repo/build/mat_bringup/CMakeFiles/install/strip.dir

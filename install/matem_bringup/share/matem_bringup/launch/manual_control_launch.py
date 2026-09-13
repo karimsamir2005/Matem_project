@@ -1,1 +1,0 @@
-/home/kareem/Desktop/Matem_repo/src/matem_bringup/launch/manual_control_launch.py
