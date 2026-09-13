@@ -1,0 +1,15 @@
+teleop_node_modified:
+  ros__parameters:
+  #The values next to the parameters are the indexes given by the joy_node to the controller for the mapping
+    axis_linear:
+      x: 1            # Left stick vertical(forward and backward)
+      y: 0            # Left stick horizontal(right and left) (Strafe)
+    axis_angular:
+      yaw: 3            # Right stick horizontal (Turn)
+    scale_linear:
+      x: 0.4          # maximum available speed that can be achieved by the car in m/s
+      y: -0.4
+    scale_angular:
+      yaw: 1.2            # Rotation speed in rad/sec
+   
+    #enable_button: 5  #This must be pressed for the controller to work

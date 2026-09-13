@@ -1,0 +1,7 @@
+Metadata-Version: 2.1
+Name: controller-pkg
+Version: 0.1.0
+Summary: Manual-arm control chain: PS4 input, cylindrical IK, joint controller. Talks to ESP32 over UART.
+Maintainer: Amr Al-Qaffas
+Maintainer-email: amr.alqaffas@gmail.com
+License: MIT

@@ -1,0 +1,15 @@
+package.xml
+setup.cfg
+setup.py
+cam/__init__.py
+cam/lane_detection.py
+cam/qr_scan.py
+cam/vision_manager.py
+cam.egg-info/PKG-INFO
+cam.egg-info/SOURCES.txt
+cam.egg-info/dependency_links.txt
+cam.egg-info/entry_points.txt
+cam.egg-info/requires.txt
+cam.egg-info/top_level.txt
+cam.egg-info/zip-safe
+resource/cam

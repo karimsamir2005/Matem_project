@@ -1,0 +1,26 @@
+[1.535s] Invoking command in '/home/kareem/Desktop/Matem_repo/build/cam': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/kareem/Desktop/Matem_repo/build/cam/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/kareem/Desktop/Matem_repo/install/cam/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/kareem/Desktop/Matem_repo/build/cam/build --no-deps symlink_data
+[1.883s] running develop
+[2.080s] running egg_info
+[2.080s] creating cam.egg-info
+[2.099s] writing cam.egg-info/PKG-INFO
+[2.100s] writing dependency_links to cam.egg-info/dependency_links.txt
+[2.100s] writing entry points to cam.egg-info/entry_points.txt
+[2.100s] writing requirements to cam.egg-info/requires.txt
+[2.100s] writing top-level names to cam.egg-info/top_level.txt
+[2.100s] writing manifest file 'cam.egg-info/SOURCES.txt'
+[2.141s] reading manifest file 'cam.egg-info/SOURCES.txt'
+[2.142s] writing manifest file 'cam.egg-info/SOURCES.txt'
+[2.163s] running build_ext
+[2.163s] Creating /home/kareem/Desktop/Matem_repo/install/cam/lib/python3.12/site-packages/cam.egg-link (link to .)
+[2.164s] Installing lane_detection script to /home/kareem/Desktop/Matem_repo/install/cam/lib/cam
+[2.164s] Installing qr_scan script to /home/kareem/Desktop/Matem_repo/install/cam/lib/cam
+[2.165s] Installing vision_manager script to /home/kareem/Desktop/Matem_repo/install/cam/lib/cam
+[2.165s] 
+[2.165s] Installed /home/kareem/Desktop/Matem_repo/build/cam
+[2.165s] running symlink_data
+[2.165s] creating /home/kareem/Desktop/Matem_repo/install/cam/share/ament_index
+[2.166s] creating /home/kareem/Desktop/Matem_repo/install/cam/share/ament_index/resource_index
+[2.166s] creating /home/kareem/Desktop/Matem_repo/install/cam/share/ament_index/resource_index/packages
+[2.166s] symbolically linking /home/kareem/Desktop/Matem_repo/build/cam/resource/cam -> /home/kareem/Desktop/Matem_repo/install/cam/share/ament_index/resource_index/packages
+[2.166s] symbolically linking /home/kareem/Desktop/Matem_repo/build/cam/package.xml -> /home/kareem/Desktop/Matem_repo/install/cam/share/cam
+[2.214s] Invoked command in '/home/kareem/Desktop/Matem_repo/build/cam' returned '0': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/kareem/Desktop/Matem_repo/build/cam/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/kareem/Desktop/Matem_repo/install/cam/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/kareem/Desktop/Matem_repo/build/cam/build --no-deps symlink_data

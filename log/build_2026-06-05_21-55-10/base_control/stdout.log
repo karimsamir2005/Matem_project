@@ -1,0 +1,32 @@
+running develop
+running egg_info
+creating base_control.egg-info
+writing base_control.egg-info/PKG-INFO
+writing dependency_links to base_control.egg-info/dependency_links.txt
+writing entry points to base_control.egg-info/entry_points.txt
+writing requirements to base_control.egg-info/requires.txt
+writing top-level names to base_control.egg-info/top_level.txt
+writing manifest file 'base_control.egg-info/SOURCES.txt'
+reading manifest file 'base_control.egg-info/SOURCES.txt'
+writing manifest file 'base_control.egg-info/SOURCES.txt'
+running build_ext
+Creating /home/kareem/Desktop/Matem_repo/install/base_control/lib/python3.12/site-packages/base-control.egg-link (link to .)
+Installing auto_control script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+Installing auto_listen script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+Installing ekf_fusion_node script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+Installing error_calc script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+Installing ik script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+Installing imu_sending script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+Installing manager script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+Installing odem_send script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+Installing random script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+Installing ser script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+Installing speed_quantizer script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+
+Installed /home/kareem/Desktop/Matem_repo/build/base_control
+running symlink_data
+creating /home/kareem/Desktop/Matem_repo/install/base_control/share/ament_index
+creating /home/kareem/Desktop/Matem_repo/install/base_control/share/ament_index/resource_index
+creating /home/kareem/Desktop/Matem_repo/install/base_control/share/ament_index/resource_index/packages
+symbolically linking /home/kareem/Desktop/Matem_repo/build/base_control/resource/base_control -> /home/kareem/Desktop/Matem_repo/install/base_control/share/ament_index/resource_index/packages
+symbolically linking /home/kareem/Desktop/Matem_repo/build/base_control/package.xml -> /home/kareem/Desktop/Matem_repo/install/base_control/share/base_control

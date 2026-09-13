@@ -1,0 +1,34 @@
+[1.543s] Invoking command in '/home/kareem/Desktop/Matem_repo/build/base_control': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/kareem/Desktop/Matem_repo/build/base_control/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/kareem/Desktop/Matem_repo/install/base_control/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/kareem/Desktop/Matem_repo/build/base_control/build --no-deps symlink_data
+[1.904s] running develop
+[2.110s] running egg_info
+[2.110s] creating base_control.egg-info
+[2.129s] writing base_control.egg-info/PKG-INFO
+[2.130s] writing dependency_links to base_control.egg-info/dependency_links.txt
+[2.130s] writing entry points to base_control.egg-info/entry_points.txt
+[2.130s] writing requirements to base_control.egg-info/requires.txt
+[2.130s] writing top-level names to base_control.egg-info/top_level.txt
+[2.130s] writing manifest file 'base_control.egg-info/SOURCES.txt'
+[2.172s] reading manifest file 'base_control.egg-info/SOURCES.txt'
+[2.173s] writing manifest file 'base_control.egg-info/SOURCES.txt'
+[2.195s] running build_ext
+[2.195s] Creating /home/kareem/Desktop/Matem_repo/install/base_control/lib/python3.12/site-packages/base-control.egg-link (link to .)
+[2.196s] Installing auto_control script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+[2.197s] Installing auto_listen script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+[2.197s] Installing ekf_fusion_node script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+[2.197s] Installing error_calc script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+[2.197s] Installing ik script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+[2.197s] Installing imu_sending script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+[2.197s] Installing manager script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+[2.197s] Installing odem_send script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+[2.197s] Installing random script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+[2.197s] Installing ser script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+[2.198s] Installing speed_quantizer script to /home/kareem/Desktop/Matem_repo/install/base_control/lib/base_control
+[2.198s] 
+[2.198s] Installed /home/kareem/Desktop/Matem_repo/build/base_control
+[2.198s] running symlink_data
+[2.198s] creating /home/kareem/Desktop/Matem_repo/install/base_control/share/ament_index
+[2.198s] creating /home/kareem/Desktop/Matem_repo/install/base_control/share/ament_index/resource_index
+[2.198s] creating /home/kareem/Desktop/Matem_repo/install/base_control/share/ament_index/resource_index/packages
+[2.198s] symbolically linking /home/kareem/Desktop/Matem_repo/build/base_control/resource/base_control -> /home/kareem/Desktop/Matem_repo/install/base_control/share/ament_index/resource_index/packages
+[2.198s] symbolically linking /home/kareem/Desktop/Matem_repo/build/base_control/package.xml -> /home/kareem/Desktop/Matem_repo/install/base_control/share/base_control
+[2.243s] Invoked command in '/home/kareem/Desktop/Matem_repo/build/base_control' returned '0': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/kareem/Desktop/Matem_repo/build/base_control/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/kareem/Desktop/Matem_repo/install/base_control/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/kareem/Desktop/Matem_repo/build/base_control/build --no-deps symlink_data

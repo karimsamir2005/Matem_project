@@ -1,0 +1,4 @@
+source;share/mat_bringup/local_setup.bash
+source;share/mat_bringup/local_setup.dsv
+source;share/mat_bringup/local_setup.sh
+source;share/mat_bringup/local_setup.zsh

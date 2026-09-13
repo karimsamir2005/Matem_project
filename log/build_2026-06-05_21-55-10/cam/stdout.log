@@ -1,0 +1,24 @@
+running develop
+running egg_info
+creating cam.egg-info
+writing cam.egg-info/PKG-INFO
+writing dependency_links to cam.egg-info/dependency_links.txt
+writing entry points to cam.egg-info/entry_points.txt
+writing requirements to cam.egg-info/requires.txt
+writing top-level names to cam.egg-info/top_level.txt
+writing manifest file 'cam.egg-info/SOURCES.txt'
+reading manifest file 'cam.egg-info/SOURCES.txt'
+writing manifest file 'cam.egg-info/SOURCES.txt'
+running build_ext
+Creating /home/kareem/Desktop/Matem_repo/install/cam/lib/python3.12/site-packages/cam.egg-link (link to .)
+Installing lane_detection script to /home/kareem/Desktop/Matem_repo/install/cam/lib/cam
+Installing qr_scan script to /home/kareem/Desktop/Matem_repo/install/cam/lib/cam
+Installing vision_manager script to /home/kareem/Desktop/Matem_repo/install/cam/lib/cam
+
+Installed /home/kareem/Desktop/Matem_repo/build/cam
+running symlink_data
+creating /home/kareem/Desktop/Matem_repo/install/cam/share/ament_index
+creating /home/kareem/Desktop/Matem_repo/install/cam/share/ament_index/resource_index
+creating /home/kareem/Desktop/Matem_repo/install/cam/share/ament_index/resource_index/packages
+symbolically linking /home/kareem/Desktop/Matem_repo/build/cam/resource/cam -> /home/kareem/Desktop/Matem_repo/install/cam/share/ament_index/resource_index/packages
+symbolically linking /home/kareem/Desktop/Matem_repo/build/cam/package.xml -> /home/kareem/Desktop/Matem_repo/install/cam/share/cam

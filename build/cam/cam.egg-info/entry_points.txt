@@ -1,0 +1,4 @@
+[console_scripts]
+lane_detection = cam.lane_detection:main
+qr_scan = cam.qr_scan:main
+vision_manager = cam.vision_manager:main
