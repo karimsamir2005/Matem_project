@@ -6,6 +6,7 @@ from std_msgs.msg import String
 import math
 from scipy.spatial.transform import Rotation
 
+
 """
 Coordinate Frame Convention:
 
@@ -21,17 +22,23 @@ Negative yaw (-yaw)  -> Clockwise rotation
 # Navigation Setpoints (target locations for each box color)
 # ============================================================
 
+TICK_STOP_THRESHOLD = 2
+
 RED_X = 1.0
 RED_Y = 0.0
+RED_YAW = 0.0 #in degrees
 
 GREEN_X = 0.0
-GREEN_Y = 1.0
+GREEN_Y = 0.2
+GREEN_YAW = 0.0
 
 BLUE_X = -1.0
 BLUE_Y = 0.0
+BLUE_YAW = 0.0 # in degrees ( Those are absolute value that should always be measured from teh starting point)
 
 FINISH_X = 0.0
-FINISH_Y = -1.0
+FINISH_Y = -0.2
+FINISH_YAW = 0.0
 
 
 
@@ -43,7 +50,7 @@ FINISH_Y = -1.0
 PLACE_RED = 1
 PLACE_GREEN = 2
 PLACE_BLUE = 3
-FINSHED = 0
+FINISHED = 0
 
 # ============================================================
 # General constants
@@ -56,9 +63,10 @@ ZERO = 0
 # Position tolerance used to determine if waypoint is reached
 # ============================================================
 
-X_REACH = 0.3
-Y_REACH = 0.3
-YAW_REACH=15
+X_REACH = 0.1
+Y_REACH = 0.1
+
+YAW_REACH_DEG = 5.0  
 
 #===============================================================
 #auto setpoints 
@@ -118,7 +126,7 @@ class Error_calc(Node):
         self.zero_flag.data = ONE
 
         # Prevents sending the same color command repeatedly
-        self.color_sent_flag = ZERO
+        self.color_sent_flag = False
 
         # ====================================================
         # Robot mode and current target
@@ -134,11 +142,27 @@ class Error_calc(Node):
         # True when current waypoint is reached
         self.stage_reached_flag = False
 
+        self.current_step = 0
+
+        # Matrix: [X_target, Y_target, Yaw_target_degrees, arm_action_id]
+        #i am doing  this because the yaw readings are absolute
+        self.mission_steps = {
+            0: [0.6,   0.0,   -90.0,   None],          # 60cm forward
+            1: [0.0,   0.0,   0.0,  None],          # Turn 90 deg CCW
+            2: [1.3,   0.0,   0.0,   PLACE_RED],     # 100cm forward -> TRIGGER RED
+            3: [-0.225,  0.0,   0.0,   None],          # 20cm backward
+            4: [0.0,   1.7,   0.0,   PLACE_GREEN],   # 80cm sideways -> TRIGGER GREEN
+            5: [0.0,  -0.3,   0.0,   None],          # -20cm sideways
+            6: [0.0,   0.0,   -180.0, None],          # Rotate 180 deg CCW
+            7: [1.362,   0.0,   -180.0,   None],          # Forward 40cm
+            8: [0.623, 0.27, -180.0,   PLACE_BLUE],    # Diagonally 50cm -> TRIGGER BLUE
+            9: [0.0,   0.0,   -180.0,   FINISHED]       # Finished / Stop
+        }
         # ====================================================
         # Subscribers
         # ====================================================
 
-        # Robot pose from EKF/localization
+        # Robot pose from odem sending 
         self.pose_sub = self.create_subscription(
             Odometry,
             'odem_final',
@@ -159,6 +183,12 @@ class Error_calc(Node):
             String,
             'box_done',
             self.switch_stage_callback,
+            10 
+        )
+        self.ser_sub = self.create_subscription(
+            Float32MultiArray,
+            'odem_ser',
+            self.odem_ser_callback,
             10
         )
 
@@ -193,64 +223,58 @@ class Error_calc(Node):
 
         self.pos_x = 0.0
         self.pos_y = 0.0
-        self.pos_yaw = 0.0
-
+        self.pos_yaw = 0.0  #in degree
         self.orien = None
+
+          #for tracking ticks values to use for state transitioning
+        self.delta_left  = 999.0  #inital value
+        self.delta_right = 999.0   #inital value
 
         # Current waypoint coordinates
         self.setpoint_in_x = 0.0
         self.setpoint_in_y = 0.0
-        self.setpoint_in_yaw = 0.0
+        self.setpoint_in_yaw = 0.0 #in degrees
+        self.odom_counter=0
 
-    def stage_reached(self, delta_x, delta_y,delta_yaw):
-        """
-        Check whether the robot is inside the allowed
-        tolerance window around the target.
-        """
-
+    def intial_zero(self,x,y):
+        self.pos_x=x
+        self.pos_y=y
+    
+    def stage_reached(self, delta_x, delta_y,delta_yaw_deg):
         self.stage_reached_flag = (
             (-X_REACH <= delta_x <= X_REACH)
-            and
-            (-Y_REACH <= delta_y <= Y_REACH)
+              and
+              (-Y_REACH <= delta_y <= Y_REACH)
             and 
-            (-YAW_REACH<= delta_yaw <= YAW_REACH)
+            (-YAW_REACH_DEG<= delta_yaw_deg <= YAW_REACH_DEG)
         )
-    def manuvers(self):
-        return
+         # Step 2: Check physical constraints (Both encoders must be idling)
+        physically_stopped = abs(self.delta_left) <= TICK_STOP_THRESHOLD and \
+                             abs(self.delta_right) <= TICK_STOP_THRESHOLD
+        return self.stage_reached_flag and physically_stopped
+    
+   
     def update_setpoint(self):
-        """
-        Update target waypoint according to the
-        currently requested box color.
-        """
-
-        if self.color_to_place == 'RED':
-            self.setpoint_in_x = RED_X
-            self.setpoint_in_y = RED_Y
-
-        elif self.color_to_place == 'GREEN':
-            self.setpoint_in_x = GREEN_X
-            self.setpoint_in_y = GREEN_Y
-
-        elif self.color_to_place == 'BLUE':
-            self.setpoint_in_x = BLUE_X
-            self.setpoint_in_y = BLUE_Y
-
-        elif self.color_to_place == 'FINISHED':
-            self.setpoint_in_x = FINISH_X
-            self.setpoint_in_y = FINISH_Y
+        if self.current_step in self.mission_steps:
+            step_data = self.mission_steps[self.current_step]
+            self.setpoint_in_x = step_data[0]
+            self.setpoint_in_y = step_data[1]
+            self.setpoint_in_yaw = step_data[2]
+            #self.get_logger().info(f"Loaded Step {self.current_step}: X={self.setpoint_in_x}, Y={self.setpoint_in_y}, Yaw={self.setpoint_in_yaw}")
 
     def auto_callback(self, msg: String):
-        """
-        Receives current operation mode.
 
-        AUTO -> start navigation.
-        MAN  -> ignore pose processing.
-        """
-
+        previous_mode = self.mode
         self.mode = msg.data
 
+        #to allow for consectuive autonomous runs and switching between manual and autonomous
         if self.mode == 'AUTO':
-            self.update_setpoint()
+            if previous_mode != 'AUTO':
+                self.color_sent_flag = False
+                self.stage_reached_flag = False
+                self.odom_counter = 0 
+                self.current_step = 0
+        self.update_setpoint()
 
     def robot_transformation(
             self,
@@ -274,140 +298,153 @@ class Error_calc(Node):
         if self.mode != 'AUTO':
             return None
 
-        ex_robot = (
-            math.cos(yaw) * ex
-            +
-            math.sin(yaw) * ey
-        )
+        ex_robot = ex
+        #(
+        #     math.cos(yaw) * ex
+        #     +
+        #     math.sin(yaw) * ey
+        # )
 
-        ey_robot = (
-            -math.sin(yaw) * ex
-            +
-            math.cos(yaw) * ey
-        )
+        ey_robot = ey
+        # (
+        #     -math.sin(yaw) * ex
+        #     +
+        #     math.cos(yaw) * ey
+        # )
+        eyaw_rad = math.radians(eyaw)
+        wrapped_yaw_rad = math.atan2(math.sin(eyaw_rad), math.cos(eyaw_rad))
+        eyaw = math.degrees(wrapped_yaw_rad)
 
-        # Normalize yaw error to [-pi, pi]
-        eyaw_ = math.atan2(
-            math.sin(eyaw),
-            math.cos(eyaw)
-        )
+        return [ex_robot, ey_robot, eyaw]
 
-        return [ex_robot, ey_robot, eyaw_]
-
+    #Just takes the readings coming from the base odometry
+    def odem_ser_callback(self, msg: Float32MultiArray):
+        if len(msg.data) >= 2:
+            self.delta_left  = msg.data[0]
+            self.delta_right = msg.data[1]
+    
     def switch_stage_callback(self, msg: String):
-        """
-        Called after a box is successfully placed.
-
-        Advances the mission to the next color target.
-        """
-
-        if msg.data == 'done red':
-            self.color_to_place = 'GREEN'
-            self.color_to_place_number = PLACE_GREEN
-
-        elif msg.data == 'done green':
-            self.color_to_place = 'BLUE'
-            self.color_to_place_number = PLACE_BLUE
-
-        elif msg.data == 'done blue':
-            self.color_to_place = 'FINISHED'
-            self.color_to_place_number = FINSHED
-
-        # Reset state for next target
+        """Called when the arm signals completion of its task."""
+        # Arm finished! Advance to the next step and clear latch locks
+        self.current_step += 1
         self.stage_reached_flag = False
-
-        # Load new waypoint
+        self.color_sent_flag = False
         self.update_setpoint()
 
     def pose_callback(self, msg: Odometry):
-        """
-        Main navigation loop.
-
-        Runs every time odometry is received.
-        Computes error between robot pose and target pose.
-        """
-
-        # Ignore odometry while not in AUTO mode
         if self.mode != 'AUTO':
+            self.odom_counter = 0
             return
 
-        # ====================================================
-        # Read robot pose
-        # ====================================================
+        self.odom_counter += 1
+        if self.odom_counter >= 10:
+            
+            # Read robot pose registers
+            self.pos_x = msg.pose.pose.position.x
+            self.pos_y = msg.pose.pose.position.y
+            self.orien = msg.pose.pose.orientation
 
-        self.pos_x = msg.pose.pose.position.x
-        self.pos_y = msg.pose.pose.position.y
+            radian_yaw = euler_from_quaternion(self.orien)[2]
+            self.pos_yaw = math.degrees(radian_yaw)
+            
+            # --- LATCH INTERCEPT BLOCK ---
+            if self.color_sent_flag:
+                # Command absolute zero velocities down to motor controller nodes
+                error_msg = Float32MultiArray(data=[0.0, 0.0, 0.0])
+                self.error_pub.publish(error_msg)
+                
+                self.zero_flag.data = ONE
+                self.zero_pub.publish(self.zero_flag)
+                
+                arm_action = self.mission_steps[self.current_step][3]
+                if arm_action is None:
+                    # FIXED: Only advance the intermediate steps IF your odometry node has 
+                    # successfully processed the hardware reset signal back near (0, 0).
+                    if abs(self.pos_x) < X_REACH and abs(self.pos_y) < Y_REACH:
+                        self.current_step += 1
+                        self.color_sent_flag = False  # Safely release execution latch lock
+                        self.update_setpoint()
+                return
 
-        self.orien = msg.pose.pose.orientation
+            # Compute tracking coordinate discrepancies
+            global_ex = self.setpoint_in_x - self.pos_x
+            global_ey = self.setpoint_in_y - self.pos_y
+            global_eyaw = self.setpoint_in_yaw - self.pos_yaw
 
-        self.pos_yaw = euler_from_quaternion(
-            self.orien
-        )[2]
+            transformed_error = self.robot_transformation(
+                global_ex,
+                global_ey,
+                global_eyaw,
+                self.pos_yaw
+            )
 
-        # ====================================================
-        # Compute position errors
-        # ====================================================
+            if transformed_error is None:
+                return
 
-        transformed_error = self.robot_transformation(
-            self.setpoint_in_x - self.pos_x,
-            self.setpoint_in_y - self.pos_y,
-            self.setpoint_in_yaw - self.pos_yaw,
-            self.pos_yaw
-        )
+            # Validate target boundary conditions
+            flag = self.stage_reached(
+                self.setpoint_in_x - self.pos_x,
+                self.setpoint_in_y - self.pos_y,
+                transformed_error[2]
+            )
 
-        # Check if waypoint reached
-        self.stage_reached(
-            self.setpoint_in_x - self.pos_x,
-            self.setpoint_in_y - self.pos_y,
-            transformed_error[2]
-        )
+            # --- NAVIGATION PHASE: Run toward target coordinates ---
+            if not flag:
+                error_msg = Float32MultiArray()
+                error_msg.data = [
+                    float(transformed_error[0]),
+                    float(transformed_error[1]),
+                    float(math.radians(transformed_error[2]))
+                ]
 
-        # ====================================================
-        # Navigation phase
-        # ====================================================
-
-        if not self.stage_reached_flag:
-
-            # Allow color message to be sent once
-            # after waypoint is reached
-            self.color_sent_flag = False
-
-            error_msg = Float32MultiArray()
-            error_msg.data = transformed_error
-
-            # Send controller error
-            self.error_pub.publish(error_msg)
-
-        # ====================================================
-        # Waypoint reached phase
-        # ====================================================
-
-        else:
-
-            if not self.color_sent_flag:
-
-                color_msg = Int8()
-                color_msg.data = self.color_to_place_number
-
-                # Tell picker which color should be placed
-                self.color_pub.publish(color_msg)
-
-                # Notify that navigation finished
+                self.error_pub.publish(error_msg)
+                self.zero_flag.data = ZERO
                 self.zero_pub.publish(self.zero_flag)
 
-                # Prevent repeated publishing
-                self.color_sent_flag = True
+            # --- ARREST PHASE: Destination reached ---
+            else:
+                arm_action = self.mission_steps[self.current_step][3]
+
+                if arm_action is None:
+                    # INTERMEDIATE STEP TRANSITION
+                    self.zero_flag.data = ONE
+                    self.zero_pub.publish(self.zero_flag)
+                    
+                    self.color_sent_flag = True  # Locks latch to protect physics synchronization loop
+                    error_msg = Float32MultiArray(data=[0.0, 0.0, 0.0])
+                    self.error_pub.publish(error_msg)
+                else:
+                    # ZONE TARGET OBJECTIVE STATE
+                    if not self.color_sent_flag:
+                        self.zero_flag.data = ONE
+                        color_msg = Int8(data=arm_action) # FIXED dynamic allocation assignment rule
+
+                        # Fire picker arm action sequence trigger
+                        self.color_pub.publish(color_msg)
+                        self.zero_pub.publish(self.zero_flag)
+                    
+                        self.color_sent_flag = True
+                        error_msg = Float32MultiArray(data=[0.0, 0.0, 0.0])
+                        self.error_pub.publish(error_msg)
+                        
+                        if arm_action == FINISHED:
+                            self.get_logger().info("Competition Routine Completed successfully. Base Locked.")
+        else: 
+            error_msg = Float32MultiArray(data=[0.0, 0.0, 0.0])
+            self.error_pub.publish(error_msg)
+            return
 
 
 def main(args=None):
-
     rclpy.init(args=args)
-
     node = Error_calc()
-
-    rclpy.spin(node)
-
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == '__main__':

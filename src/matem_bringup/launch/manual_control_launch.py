@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -6,13 +7,9 @@ from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import AnyLaunchDescriptionSource
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
+from launch.actions import GroupAction  # Required for grouping architecture
 
-
-SERIAL_PORT = '/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0'    # Change to /dev/ttyACM0 if connected via ESP32 native USB
-BAUD_RATE   = 921600
-
-
-#--------------------------------------------------------------Launch Decription-------------------------------------------------------------------------
+#--------------------------------------------------------------Launch Description-------------------------------------------------------------------------
 def generate_launch_description():
 
     config_path = os.path.join(
@@ -22,23 +19,6 @@ def generate_launch_description():
     )
 
     config_dir = get_package_share_directory('matem_bringup')
-
-
-#------------------------Those are the 3 argumnets coming from the launch file of qaffas i don't know what are those----------------------
-    serial_port_arg = DeclareLaunchArgument(
-        'serial_port',
-        default_value='/dev/serial/by-id/'
-                      'usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0',
-        description='Serial device path for the ESP32 connection',
-    )
-
-    joy_dev_id_arg = DeclareLaunchArgument(
-        'joy_dev_id',
-        default_value='0',
-        description='Joystick device index (/dev/input/js<N>)',
-    )
-
-    # serial_port = LaunchConfiguration('serial_port')
 
 
     #----------------------------------------------------------------General System Nodes----------------------------------------------------------------
@@ -58,7 +38,7 @@ def generate_launch_description():
 
     # # '/camera/.*', '/qr_result', '/imu/yaw', '/battery_voltage', '/lane_camera_raw', , '/parameter_events', '/qr_camera_raw'
 
-    # 2. Joystick Driver(This is the node repsonsible for reading from the PS4 Joystick)
+    # 2. Joystick Driver(This is the node responsible for reading from the PS4 Joystick)
     joy_node = Node(
         package='joy',
         executable='joy_node',
@@ -79,146 +59,126 @@ def generate_launch_description():
        
     )
 
-    # 3.5 Speed Quantizer(This is an intermidiate node responsible for making analog velocity values into steps)
-    quantizer_node = Node(
-        package='base_control',
-        executable='speed_quantizer',
-        remappings=[
-            ('/cmd_vel_raw', '/cmd_vel_raw'),
-            ('/cmd_vel_quantized', '/cmd_vel')
-        ]
-    )
-
-    # 4. Inverse Kinematic node (This is the Inverse kinematic control model of the mecanum base)
-    ik_node = Node(
-        package='base_control',
-        executable='ik',
-        name='wheel_calculator'
-    )
-
-    # 5. Serial Node ( The node responsible for serial communication between the pi and the low-level MCU's)
-    serial_node = Node(
-        package='base_control',
-        executable='ser'
-    )
-
-
-    #6. This is the Finite State Machine repsonsible for active mode switching
+    # 6. This is the Finite State Machine responsible for active mode switching
     mode_manager=Node(
         package='base_control',
         executable="manager",
     )
 
-
-    #7.This is the forward kinematic control node in the autonomous stage
+    # 7.This is the forward kinematic control node in the autonomous stage
     auto_control=Node(
         package='base_control',
         executable='auto_control'
     )
 
-    #8.This is a communication debugging node for turning csv messages to standard odometry message
-    odem_sending=Node(
-        package='base_control',
-        executable='odem_send'
+    # ===================================================================================
+    # BASE NAVIGATION STACK GROUP (Fully Aligned & Streamlined)
+    # ===================================================================================
+    base_navigation_group = GroupAction(
+        actions=[
+            # 3.5 Speed Quantizer (Moved inside the core driving chain)
+            Node(
+                package='base_control',
+                executable='speed_quantizer',
+                remappings=[
+                    ('/cmd_vel_raw', '/cmd_vel_raw'),
+                    ('/cmd_vel_quantized', '/cmd_vel')
+                ]
+            ),
+            # 4. Inverse Kinematic node
+            Node(
+                package='base_control',
+                executable='ik',
+                name='wheel_calculator'
+            ),
+            # 5. Serial Node
+            Node(
+                package='base_control',
+                executable='ser'
+            ),
+            # 8. Communication debugging node
+            Node(
+                package='base_control',
+                executable='odem_send'
+            ),
+            # 11. Error calculation node
+            Node(
+                package='base_control',
+                executable='error_calc'
+            ),
+            # 20. Plan B control for the base
+            Node(
+                package='base_control',
+                executable='pd_control',
+            )
+        ]
     )
 
-
-    # #10.This is a communication testing node for generaating IMU readings
-    # imu_sending=Node(
-    #     package='base_control',
-    #     executable='imu_sending'
-    # )
-
-    #11.This is the node responsible for error calculation and stage changing of the autonomous navigation
-    error_calc=Node(
-        package='base_control',
-        executable='error_calc'
+    # ===================================================================================
+    # CAMERA VISION MODULE GROUP
+    # ===================================================================================
+    camera_vision_group = GroupAction(
+        actions=[
+            # 13. Camera Node Responsible for scanning the qr code
+            Node(
+                package='cam',            
+                executable='qr_scan',                
+            ),
+            # # 15. Mode switching code between the camera's Functions
+            # Node(
+            #     package='cam',            
+            #     executable='vision_manager',                
+            # )
+        ]
     )
 
-    # #12. This is the Extended-kalman filter logic node
-    # ekfnode = Node(
-    #     package ='base_control',
-    #     executable='ekf_fusion_node',
-    #         parameters=[{
-    #     'process_noise_x':    0.05,
-    #     'process_noise_yaw':  0.06,
-    #     'predict_frequency':  50.0,
-    # }]
-    # )
-
-    #----------------------------------------------------------------Camera Nodes-------------------------------------------------------------------------
-
-    #13. Camera Node Responsible for scanning the qr code and sending the results
-    qrNode = Node(
-        package='cam',            # The package that contains the executable
-        executable='qr_scan',                # The actual Python executable (node) to run
-
+    # ===================================================================================
+    # MANIPULATOR MODULE GROUP
+    # ===================================================================================
+    robotic_arm_group = GroupAction(
+        actions=[
+            # 16. Node responsible for taking and filtering inputs
+            Node(
+                package='controller_pkg',
+                executable='arm_input_node',
+            ),
+            # 17. Inverse kinematic engine of the manipulator
+            Node(
+                package='controller_pkg',
+                executable='cyl_ik_node',
+            ),
+            # 18. Serial communication node for the manipulator module
+            Node(
+                package='controller_pkg',
+                executable='serial_bridge_node',
+            ),
+            # 19. Arm sequencer
+            Node(
+                package='controller_pkg',
+                executable='arm_sequencer',
+            )
+        ]
     )
 
-    #14. Camera Node responsible for Lane detection and calculating the tilt and offset
-    laneNode = Node(
-        package='cam',            # Package containing the subscriber node
-        executable='lane_detection',               # Subscriber node executable
-
-    )
-
-    #15. This is the mode siwtching code between the camera's Functions
-    VisionManager = Node(
-        package='cam',            # The package that contains the executable
-        executable='vision_manager',                # The actual Python executable (node) to run
-        # name='edges_node_publisher',                  # Name of the node (can be different from executable)
-    )
-
-    #----------------------------------------------------------------Manipulator Nodes--------------------------------------------------------------------
-
-    #16. Node resposnible for taking and filtering the inputs coming from the joy node
-    arm_input_node = Node(
+    led_feedback_node = Node(
         package='controller_pkg',
-        executable='arm_input_node',
+        executable='led_feedback_node',
     )
 
-    #17. This is the inverse kinematic engine of the manipulator
-    cyl_ik_node = Node(
+    beep_button_node = Node(
         package='controller_pkg',
-        executable='cyl_ik_node',
+        executable='beep_button_node',
     )
-
-
-    #18. This is the serial communication node for the manipulator module
-    serial_bridge_node = Node(
-        package='controller_pkg',
-        executable='serial_bridge_node',
-        name='serial_bridge_node',
-        output='screen',
-        parameters=[{
-            #'serial_port': serial_port,
-            'baud_rate':   921600,
-        }],
-    )
-
-    #18.There should be a node subscribing to odom_filtered
-
 
     return LaunchDescription([
         joy_node,
         teleop_node,
-        quantizer_node,
-        ik_node,
-        serial_node,
         mode_manager,
-        auto_control,
-        odem_sending,
-        #imu_sending,
-        qrNode,
-        laneNode,
-        VisionManager,   
-        #foxglove_bridge,
-        #ekfnode,
-        error_calc,
-        arm_input_node,
-        cyl_ik_node,
-        serial_bridge_node,
-        #I don't know what is the function of those 2 below(They are communication testing nodes)
-        serial_port_arg,
-        joy_dev_id_arg
+        led_feedback_node,
+        beep_button_node,
+        #auto_control,
+        # Isolated Scoped Groups
+        base_navigation_group,
+        camera_vision_group,
+        robotic_arm_group,
     ])

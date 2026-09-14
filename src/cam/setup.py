@@ -25,8 +25,6 @@ setup(
     entry_points={
         'console_scripts': [
             'qr_scan = cam.qr_scan:main',
-            'lane_detection = cam.lane_detection:main',
-            'vision_manager = cam.vision_manager:main',
         ],
     },
 )

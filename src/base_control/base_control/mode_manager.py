@@ -9,9 +9,11 @@ BASE_ACTIVATION = 'BASE'
 
 AUTO_ACTIVATION ='AUTO'
 MANUAL_ACTIVATION = 'MAN'
+BONUS_ACTIVATION = 'BONUS'
 
 IDX_MODULES_SWITCHING=2
 IDX_MODE_SWITCHING=9
+IDX_BONUS=3  # square button
 
 class ModeManagerNode(Node):
 
@@ -23,6 +25,8 @@ class ModeManagerNode(Node):
         # Track previous mode_toggle value to detect rising edges
         self._prev_toggle_module = False
         self._prev_toggle_mode=False
+        self._prev_bonus = False
+        self.bonus_flag = False
 
         # Subscribers
         self._joy_sub = self.create_subscription(
@@ -87,6 +91,10 @@ class ModeManagerNode(Node):
         self.mode=MANUAL_ACTIVATION
        # self.get_logger().info('manual mode is activated')
 
+    def _switch_to_bonus(self):
+        self.mode=BONUS_ACTIVATION
+       # self.get_logger().info('bonus mode is activated')
+
 
     def _handle_module_toggle(self, toggle_value:bool):
         toggle_now = toggle_value 
@@ -98,19 +106,27 @@ class ModeManagerNode(Node):
         self._prev_toggle_module = toggle_now  # update for next frame
 
     def _handle_mode_toggle(self, toggle_value:bool):
-        toggle_now = toggle_value 
+        toggle_now = toggle_value
         if self._is_rising_edge(toggle_now, self._prev_toggle_mode):
             if self.mode== MANUAL_ACTIVATION:
                 self._switch_to_Auto()
             else:
                 self._switch_to_man()
         self._prev_toggle_mode = toggle_now  # update for next frame
+
+    def _handle_bonus_toggle(self, toggle_value: bool):
+        toggle_now = toggle_value
+        if self._is_rising_edge(toggle_now, self._prev_bonus):
+            if self.module == BASE_ACTIVATION and self.mode == MANUAL_ACTIVATION:
+                self.bonus_flag = not self.bonus_flag
+        self._prev_bonus = toggle_now
     # ── Main callbacks ───────────────────────────────────────────────────────
 
     def manager_callback(self, msg: Joy) -> None:
         
         self._handle_module_toggle(msg.buttons[IDX_MODULES_SWITCHING])
         self._handle_mode_toggle(msg.buttons[IDX_MODE_SWITCHING])
+        self._handle_bonus_toggle(msg.buttons[IDX_BONUS])
              
         
         if self.mode == MANUAL_ACTIVATION:
@@ -131,7 +147,7 @@ class ModeManagerNode(Node):
         self._module_pub.publish(msg)
         
         mode=String()
-        mode.data=self.mode
+        mode.data = self.mode + ('_BONUS' if self.bonus_flag else '')
         self._mode_pub.publish(mode)
         
        

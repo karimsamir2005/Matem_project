@@ -27,14 +27,17 @@ class DisplayNode(Node):
         self.get_logger().info(f"state :{msg.data}")
 
 
-# Main entry point of the program
 def main(args=None):
-    rclpy.init(args=args)        # Initialize ROS 2 communication
-    node = DisplayNode()         # Create the node
-    rclpy.spin(node)             # Keep it alive and processing callbacks
-    rclpy.shutdown()             # Shutdown ROS 2 when done
+    rclpy.init(args=args)
+    node = DisplayNode()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 
-# Run main() only if this file is executed directly
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

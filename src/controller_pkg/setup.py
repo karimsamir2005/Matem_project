@@ -20,9 +20,12 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'arm_input_node        = controller_pkg.arm_input_node:main',
-            'cyl_ik_node           = controller_pkg.cyl_ik_node:main',
-            'serial_bridge_node    = controller_pkg.serial_bridge_node:main',
+            'arm_input_node     = controller_pkg.arm_input_node:main',
+            'cyl_ik_node        = controller_pkg.cyl_ik_node:main',
+            'serial_bridge_node = controller_pkg.serial_bridge_node:main',
+            'arm_sequencer      = controller_pkg.arm_sequencer:main',
+            'led_feedback_node  = controller_pkg.led_feedback_node:main',
+            'beep_button_node   = controller_pkg.beep_button_node:main',
         ],
     },
 )

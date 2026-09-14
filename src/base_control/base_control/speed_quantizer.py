@@ -15,10 +15,10 @@ class SpeedQuantizer(Node):
 
         # 3. Define Step Levels (Input Threshold, Output Speed)
         # Linear X (Forward/Backward) and Y (Strafing Left/Right)
-        self.linear_levels = [(0.5, 0.4), (0.25, 0.2), (0.0, 0.0)]
+        self.linear_levels = [(0.38, 0.2), (0.1, 0.1) , (0.0, 0.0)]
         
         # Angular Z (Rotation) - typically higher values for turning speed
-        self.angular_levels = [(0.5, 1.2), (0.25, 0.6), (0.0, 0.0)]
+        self.angular_levels = [(0.95 , 1.2) ,  (0.3, 0.25), (0.0, 0.0)]
 
     def apply_thresholds(self, input_val, levels):
         """Maps continuous joystick input to discrete speed steps."""

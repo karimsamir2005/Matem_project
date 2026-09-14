@@ -3,14 +3,18 @@ import math
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float32MultiArray, String
 
 # Topics
 IN_AXES_TOPIC  = '/arm_axes'
 IN_FB_TOPIC    = '/arm_feedback'
+IN_MODE_TOPIC  = 'auto_active'
 OUT_JT_TOPIC   = '/arm_jt_targets'
 OUT_POS_TOPIC  = '/arm_position'
 OUT_ST_TOPIC   = '/joint_states'
+
+MODE_MANUAL = 'MAN'
+MODE_AUTO   = 'AUTO'
 
 # Link lengths (m)
 L1 = 0.13
@@ -33,7 +37,7 @@ TICK_HZ  = 50.0
 TICK_DT  = 1.0 / TICK_HZ
 
 # ── Watchdog ──────────────────────────────────────────────────────────────────
-AXES_STALE_TIMEOUT_S = 0.20
+AXES_STALE_TIMEOUT_S = 5
 
 # ── Joystick zone thresholds ──────────────────────────────────────────────────
 ZONE_DEAD = 0.15
@@ -42,7 +46,8 @@ ZONE_FAST = 0.75
 # ── /arm_axes input layout ────────────────────────────────────────────────────
 IDX_LX, IDX_LY, IDX_RX, IDX_RY              = 0, 1, 2, 3
 IDX_GRIP, IDX_RELEASE, IDX_RESET, IDX_WRIST = 4, 5, 6, 7
-ARM_AXES_LEN = 8
+IDX_PRESET_A, IDX_PRESET_B                  = 8, 9   # L2, R2 — manual snap presets
+ARM_AXES_LEN = 10
 
 # ── /arm_feedback input layout (degrees from embedded) ───────────────────────
 FB_IDX_ST, FB_IDX_SH, FB_IDX_EL, FB_IDX_WR = 0, 1, 2, 3
@@ -57,6 +62,28 @@ URDF_JOINTS = ['joint1', 'joint2', 'joint3', 'joint4']
 
 ORIENT_HORIZONTAL = 'HORIZONTAL'
 ORIENT_DOWN       = 'DOWN'
+
+# ── Manual snap presets ───────────────────────────────────────────────────────
+# Fill in the values you see sent on /arm_jt_targets (OUT_IDX_SH / OUT_IDX_EL).
+# Stepper is intentionally excluded — it stays wherever the operator left it.
+#
+# Sent convention:  sh_sent = -degrees(theta_sh) + 138
+#                   el_sent =  degrees(theta_el)  + 132
+#
+def _preset(sh_sent: float, el_sent: float, wrist: str) -> dict:
+    return dict(
+        sh=math.radians(138.0 - sh_sent),
+        el=math.radians(el_sent - 132.0),
+        wrist=wrist,
+    )
+
+#                         sh_sent   el_sent   wrist_orient
+PRESET_A = _preset(       116.0,    30.0,     ORIENT_HORIZONTAL)  # ← fill in
+PRESET_B = _preset(       39.0,    20.0,     ORIENT_DOWN)  # ← fill in
+
+# True  → rate-limited move toward preset (3°/tick, safe on hardware)
+# False → instant snap (faster but may jerk on real joints)
+PRESET_SMOOTH = False
 
 
 # Helpers
@@ -91,10 +118,11 @@ class CylIkNode(Node):
         self._sign_j3 = -1
         self._sign_j4 =  1
 
+        #Initial position
         self._theta_st = 0.0
-        self._theta_sh = 0.0#(138.0 - 9.0)
-        self._theta_el = 0.0#(38.0 - 132.0)
-        self._theta_wr = 0.0
+        self._theta_sh = math.radians( 22.0) #112
+        self._theta_el = math.radians(-102.0) #-73
+        self._theta_wr = math.radians(65.0) #-115
         self._feedback_received = False
 
         self._wrist_orient   = ORIENT_HORIZONTAL
@@ -107,7 +135,13 @@ class CylIkNode(Node):
         self._pending_release = False
         self._pending_reset   = False
         self._pending_wrist   = False
+        self._pending_preset_a = False
+        self._pending_preset_b = False
+        self._active_preset: dict | None = None  # preset being tracked (smooth mode)
 
+        self._mode = MODE_MANUAL
+
+        self._sub_mode     = self.create_subscription(String, IN_MODE_TOPIC, self._mode_callback, 10)
         self._sub_axes     = self.create_subscription(Float32MultiArray, IN_AXES_TOPIC, self._axes_callback, 10)
         # self._sub_fb       = self.create_subscription(Float32MultiArray, IN_FB_TOPIC, self._feedback_callback, 10)
         self._pub_targets  = self.create_publisher(Float32MultiArray, OUT_JT_TOPIC,  10)
@@ -141,16 +175,26 @@ class CylIkNode(Node):
         pos.data = [msg.data[FB_IDX_ST], r, z]   # [stepper°, r_m, z_m]
         self._pub_position.publish(pos)
 
+    def _mode_callback(self, msg: String):
+        self._mode = msg.data.upper()
+
     def _axes_callback(self, msg: Float32MultiArray):
         self._latest_axes   = list(msg.data[:ARM_AXES_LEN])
         self._latest_axes_t = self.get_clock().now()
-        if msg.data[IDX_GRIP]    == 1: self._pending_grip    = True
-        if msg.data[IDX_RELEASE] == 1: self._pending_release = True
-        if msg.data[IDX_RESET]   == 1: self._pending_reset   = True
-        if msg.data[IDX_WRIST]   == 1: self._pending_wrist   = True
+        if msg.data[IDX_GRIP]     == 1: self._pending_grip     = True
+        if msg.data[IDX_RELEASE]  == 1: self._pending_release  = True
+        if msg.data[IDX_RESET]    == 1: self._pending_reset    = True
+        if msg.data[IDX_WRIST]    == 1: self._pending_wrist    = True
+        if len(msg.data) > IDX_PRESET_A and msg.data[IDX_PRESET_A] == 1: self._pending_preset_a = True
+        if len(msg.data) > IDX_PRESET_B and msg.data[IDX_PRESET_B] == 1: self._pending_preset_b = True
 
     # ── Tick ──────────────────────────────────────────────────────────────────
     def _tick(self):
+        # In AUTO the arm is driven by arm_auto_sequencer over /arm_cmd.
+        # Stay silent so we don't compete on /arm_jt_targets or /joint_states.
+        if self._mode == MODE_AUTO:
+            return
+
         # Watchdog
         if self._latest_axes is None:
             axes = [0.0] * ARM_AXES_LEN
@@ -159,7 +203,7 @@ class CylIkNode(Node):
             if age_s > AXES_STALE_TIMEOUT_S:
                 self.get_logger().warn(
                     f'/arm_axes stale ({age_s*1000:.0f} ms) — zeroing',
-                    throttle_duration_sec=2.0,
+                    throttle_duration_sec=5.0,
                 )
                 axes = [0.0] * ARM_AXES_LEN
             else:
@@ -188,6 +232,35 @@ class CylIkNode(Node):
         self._pending_grip = self._pending_release = \
             self._pending_reset = self._pending_wrist = False
 
+        # ── Preset snap (L2 → PRESET_A, R2 → PRESET_B) ───────────────────────
+        if self._pending_preset_a:
+            self._active_preset = PRESET_A
+            self.get_logger().info('preset -> A')
+        if self._pending_preset_b:
+            self._active_preset = PRESET_B
+            self.get_logger().info('preset -> B')
+        self._pending_preset_a = self._pending_preset_b = False
+
+        if self._active_preset is not None:
+            p = self._active_preset
+            if PRESET_SMOOTH:
+                d_sh = clamp(p['sh'] - self._theta_sh, -MAX_DELTA_RAD, MAX_DELTA_RAD)
+                d_el = clamp(p['el'] - self._theta_el, -MAX_DELTA_RAD, MAX_DELTA_RAD)
+                self._theta_sh += d_sh
+                self._theta_el += d_el
+                # Clear once close enough (within one step)
+                if abs(p['sh'] - self._theta_sh) < MAX_DELTA_RAD and \
+                   abs(p['el'] - self._theta_el) < MAX_DELTA_RAD:
+                    self._theta_sh = p['sh']
+                    self._theta_el = p['el']
+                    self._wrist_orient = p['wrist']
+                    self._active_preset = None
+            else:
+                self._theta_sh = p['sh']
+                self._theta_el = p['el']
+                self._wrist_orient = p['wrist']
+                self._active_preset = None
+
         # ── Stepper: zone joystick, update shadow for RViz ────────────────────
         st_zone = joy_zone(lx)
         if st_zone != 0:
@@ -198,7 +271,8 @@ class CylIkNode(Node):
         # Only run the IK round-trip when the right stick is actually deflected.
         # Otherwise the FK→clamp→IK loop is not identity at the workspace edges
         # and the joints drift to a singularity-boundary attractor.
-        if rx != 0.0 or ry != 0.0:
+        # Also skipped while a preset is still driving the joints.
+        if (rx != 0.0 or ry != 0.0) and self._active_preset is None:
             r_cur, z_cur = solve_fk(self._theta_sh, self._theta_el)
             r_cur = clamp(r_cur, R_MIN, R_MAX)
 

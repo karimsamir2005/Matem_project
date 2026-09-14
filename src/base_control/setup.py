@@ -25,16 +25,14 @@ setup(
     entry_points={
         'console_scripts': [
             'ik=base_control.ik:main',
-            'random=base_control.random_speeds:main',
             'ser=base_control.serial:main',
             'speed_quantizer=base_control.speed_quantizer:main',
             'manager=base_control.mode_manager:main',
             'auto_listen=base_control.auto_activation:main',
             'auto_control=base_control.autonmous_control:main',
             'odem_send=base_control.odem_sending:main',
-            'imu_sending=base_control.imu_sending:main',
-            'ekf_fusion_node=base_control.ekf_fusion_node:main',
             'error_calc=base_control.error_calc:main',
+            'pd_control=base_control.pd_control:main',
         ],
     },
 )

@@ -61,8 +61,14 @@ class IK (Node):
 def main(args=None):
     rclpy.init(args=args)
     node = IK()
-    rclpy.spin(node)
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     main()
